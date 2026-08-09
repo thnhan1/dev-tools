@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LD+JSON Viewer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="title-bar">
+      <h1><span class="icon">{;}</span> LD+JSON Schema Viewer</h1>
+      <div class="badge" id="schemaCount">0</div>
+    </div>
+    <div class="actions">
+      <button id="copyAllBtn" class="btn btn-primary" disabled>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy All
+      </button>
+    </div>
+  </div>
+  
+  <div class="content" id="container">
+    <div class="loading">Analyzing webpage...</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

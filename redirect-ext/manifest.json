@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "URL Redirect Pro",
+  "description": "Tự động redirect URL theo các quy tắc cấu hình (vd: https://localhost → http://localhost)",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "URL Redirect Pro"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "https://localhost/*",
+    "http://localhost/*",
+    "<all_urls>"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["config.json"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

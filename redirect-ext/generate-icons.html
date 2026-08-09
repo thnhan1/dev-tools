@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<!--
+  Mở file này trong trình duyệt để tự động tạo các file icon PNG
+  cho Chrome extension. Nhấn nút "Tạo Icons" để tải xuống.
+-->
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Icon Generator</title>
+<style>
+  body { font-family: sans-serif; background: #111; color: #eee; padding: 20px; }
+  canvas { border: 1px solid #333; margin: 10px; image-rendering: pixelated; }
+  button { background: #4fc3f7; color: #000; border: none; padding: 10px 20px;
+           border-radius: 6px; cursor: pointer; font-weight: bold; margin: 10px 5px; }
+  button:hover { background: #7c4dff; color: #fff; }
+  .info { color: #4fc3f7; font-size: 14px; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<h2>🎨 Icon Generator - URL Redirect Pro</h2>
+<div class="info">
+  Preview các icons bên dưới. Nhấn <strong>"Tải xuống tất cả"</strong>
+  rồi đặt các file PNG vào thư mục <code>icons/</code> của extension.
+</div>
+<div id="previews"></div>
+<br>
+<button onclick="downloadAll()">⬇️ Tải xuống tất cả</button>
+<p id="status" style="color:#4caf88"></p>
+
+<script>
+const SIZES = [16, 48, 128];
+
+function drawIcon(size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const s = size;
+  const r = Math.max(2, s * 0.18);
+
+  // Rounded background
+  ctx.beginPath();
+  ctx.moveTo(r, 0); ctx.lineTo(s-r, 0);
+  ctx.quadraticCurveTo(s, 0, s, r);
+  ctx.lineTo(s, s-r); ctx.quadraticCurveTo(s, s, s-r, s);
+  ctx.lineTo(r, s); ctx.quadraticCurveTo(0, s, 0, s-r);
+  ctx.lineTo(0, r); ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  const bg = ctx.createLinearGradient(0, 0, s, s);
+  bg.addColorStop(0, '#0d0d1a');
+  bg.addColorStop(1, '#1e1e40');
+  ctx.fillStyle = bg;
+  ctx.fill();
+
+  const cx = s * 0.5;
+  const cy = s * 0.5;
+  const arc = s * 0.28;
+  const lw = Math.max(1, s * 0.09);
+
+  // Top arc (cyan)
+  ctx.beginPath();
+  ctx.arc(cx, cy, arc, Math.PI * 1.15, Math.PI * -0.05, false);
+  ctx.strokeStyle = '#4fc3f7';
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Bottom arc (purple)
+  ctx.beginPath();
+  ctx.arc(cx, cy, arc, Math.PI * -0.05, Math.PI * 1.15, false);
+  ctx.strokeStyle = '#7c4dff';
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Arrowhead top-right (cyan)
+  const a1 = Math.PI * -0.05;
+  const ax = cx + arc * Math.cos(a1);
+  const ay = cy + arc * Math.sin(a1);
+  const as = Math.max(2, s * 0.09);
+  ctx.save();
+  ctx.translate(ax, ay);
+  ctx.rotate(a1 + Math.PI * 0.5);
+  ctx.beginPath();
+  ctx.moveTo(0, -as); ctx.lineTo(as * 0.7, as * 0.5); ctx.lineTo(-as * 0.7, as * 0.5);
+  ctx.closePath();
+  ctx.fillStyle = '#4fc3f7';
+  ctx.fill();
+  ctx.restore();
+
+  // Arrowhead bottom-left (purple)
+  const a2 = Math.PI * 1.15;
+  const bx = cx + arc * Math.cos(a2);
+  const by = cy + arc * Math.sin(a2);
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.rotate(a2 - Math.PI * 0.5);
+  ctx.beginPath();
+  ctx.moveTo(0, -as); ctx.lineTo(as * 0.7, as * 0.5); ctx.lineTo(-as * 0.7, as * 0.5);
+  ctx.closePath();
+  ctx.fillStyle = '#7c4dff';
+  ctx.fill();
+  ctx.restore();
+
+  return canvas;
+}
+
+// Render previews
+window.addEventListener('load', () => {
+  const container = document.getElementById('previews');
+  SIZES.forEach(size => {
+    const canvas = drawIcon(size);
+    canvas.style.width = Math.max(size, 64) + 'px';
+    canvas.style.height = Math.max(size, 64) + 'px';
+    const label = document.createElement('div');
+    label.textContent = `icon${size}.png (${size}×${size})`;
+    label.style.color = '#8892b0';
+    label.style.fontSize = '12px';
+    label.style.marginBottom = '5px';
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'inline-block';
+    wrapper.style.textAlign = 'center';
+    wrapper.style.marginRight = '20px';
+    wrapper.appendChild(canvas);
+    wrapper.appendChild(document.createElement('br'));
+    wrapper.appendChild(label);
+    container.appendChild(wrapper);
+  });
+});
+
+function downloadAll() {
+  SIZES.forEach((size, i) => {
+    setTimeout(() => {
+      const canvas = drawIcon(size);
+      const link = document.createElement('a');
+      link.download = `icon${size}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }, i * 200);
+  });
+  document.getElementById('status').textContent =
+    '✓ Đang tải xuống 3 files: icon16.png, icon48.png, icon128.png – hãy đặt vào thư mục icons/';
+}
+</script>
+</body>
+</html>
