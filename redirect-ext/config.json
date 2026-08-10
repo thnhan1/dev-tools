@@ -10,7 +10,7 @@
     },
     {
       "id": "localhost-4503-https-to-http",
-      "description": "Redirect https://localhost:4503/* → http://localhost:4503/* (ví dụ thêm rule)",
+      "description": "Redirect https://localhost:4503/* → http://localhost:4503/*",
       "enabled": false,
       "matchType": "prefix",
       "from": "https://localhost:4503/",
@@ -18,16 +18,29 @@
     }
   ],
 
+  "aemAuthorRewrite": {
+    "enabled": true,
+    "description": "Automatically rewrite live-site or nested URLs pasted into localhost to local AEM Author path (/content/sitename/...)",
+    "localhostBase": "http://localhost:4502",
+    "defaultSiteName": "mysite",
+    "prependEditorHtml": false,
+    "liveDomains": [
+      "https://live-site.com",
+      "https://www.example.com"
+    ]
+  },
+
   "htmlFallback": {
     "enabled": true,
-    "description": "Nếu page trả về 404 và URL chưa có extension, thử thêm .html vào cuối",
+    "description": "Proactively resolve page errors (404, 403, 500, network errors): strip trailing slash, append .html, prepend path prefixes",
     "matchPatterns": [
       "http://localhost:4502/*",
       "http://localhost:4503/*"
     ],
+    "pathPrefixes": [
+      "/content/mysite"
+    ],
     "skipIfPathEndsWith": [
-      "/",
-      ".html", ".htm",
       ".js", ".css", ".json", ".xml",
       ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico",
       ".woff", ".woff2", ".ttf", ".eot",

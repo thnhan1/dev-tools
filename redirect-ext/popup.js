@@ -2,170 +2,338 @@
 //  URL Redirect Pro - popup.js
 // ============================================================
 
-// ── Tab switching ──────────────────────────────────────────
+let currentConfig = {
+  rules: [],
+  aemAuthorRewrite: {
+    enabled: true,
+    localhostBase: "http://localhost:4502",
+    defaultSiteName: "mysite",
+    liveDomains: ["https://live-site.com"]
+  },
+  htmlFallback: {
+    enabled: true,
+    matchPatterns: ["http://localhost:4502/*"],
+    pathPrefixes: ["/content/mysite"],
+    skipIfPathEndsWith: [".js", ".css", ".png", ".jpg", ".svg", ".json", ".woff2"]
+  }
+};
+
+// ─── Tabs Navigation Control ──────────────────────────────
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+
     tab.classList.add('active');
     document.getElementById(`panel-${tab.dataset.tab}`).classList.add('active');
+
+    if (tab.dataset.tab === 'json') {
+      updateJsonAreaFromConfig();
+    }
   });
 });
 
-// ── Helpers ───────────────────────────────────────────────
-function timeAgo(ts) {
-  const diff = Date.now() - ts;
-  if (diff < 60000) return `${Math.floor(diff / 1000)}s trước`;
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}p trước`;
-  return new Date(ts).toLocaleTimeString('vi-VN');
+// ─── Toast Notification Helper ────────────────────────────
+function showToast(message, bgColor = "#10b981") {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.style.backgroundColor = bgColor;
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 2200);
 }
 
-function truncate(str, n) {
-  return str && str.length > n ? str.slice(0, n) + '…' : str;
+// ─── Render Functions ───────────────────────────────────────
+
+function renderAemSettings() {
+  const aem = currentConfig.aemAuthorRewrite || {};
+  document.getElementById('aemEnabled').checked = !!aem.enabled;
+  document.getElementById('aemSiteName').value = aem.defaultSiteName || 'mysite';
+
+  const domainsContainer = document.getElementById('liveDomainsList');
+  const domains = aem.liveDomains || [];
+  domainsContainer.innerHTML = domains.map((domain, index) => `
+    <div class="tag-item">
+      <span>${domain}</span>
+      <span class="remove-tag" data-domain-index="${index}">✕</span>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('[data-domain-index]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.domainIndex, 10);
+      currentConfig.aemAuthorRewrite.liveDomains.splice(idx, 1);
+      renderAemSettings();
+    });
+  });
 }
 
-// ── Render HTML Fallback card ─────────────────────────────
-function renderHtmlFallback(fbCfg) {
-  const card    = document.getElementById('htmlFallbackCard');
-  const badge   = document.getElementById('fbBadge');
-  const desc    = document.getElementById('fbDesc');
-  const patterns = document.getElementById('fbPatterns');
+function renderFallbackSettings() {
+  const fb = currentConfig.htmlFallback || {};
+  document.getElementById('htmlFallbackEnabled').checked = !!fb.enabled;
 
-  if (!fbCfg) { card.style.display = 'none'; return; }
+  const prefixesContainer = document.getElementById('prefixesList');
+  const prefixes = fb.pathPrefixes || [];
+  prefixesContainer.innerHTML = prefixes.map((prefix, index) => `
+    <div class="tag-item">
+      <span>${prefix}</span>
+      <span class="remove-tag" data-prefix-index="${index}">✕</span>
+    </div>
+  `).join('');
 
-  card.style.display = 'block';
-
-  if (fbCfg.enabled) {
-    badge.textContent = 'ON';
-    badge.className = 'fb-badge on';
-  } else {
-    badge.textContent = 'OFF';
-    badge.className = 'fb-badge off';
-  }
-
-  desc.textContent = fbCfg.description || 'Thêm .html nếu page 404';
-
-  const pts = fbCfg.matchPatterns || [];
-  patterns.innerHTML = pts.map(p => `<span class="fb-pattern">${p}</span>`).join('');
+  document.querySelectorAll('[data-prefix-index]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.prefixIndex, 10);
+      currentConfig.htmlFallback.pathPrefixes.splice(idx, 1);
+      renderFallbackSettings();
+    });
+  });
 }
 
-// ── Render Rules ──────────────────────────────────────────
-function renderRules(rules) {
-  const list = document.getElementById('rulesList');
-  const enabledCount = rules.filter(r => r.enabled).length;
-
-  document.getElementById('stat-total').textContent = rules.length;
-  document.getElementById('stat-enabled').textContent = enabledCount;
+function renderRulesList() {
+  const container = document.getElementById('rulesContainer');
+  const rules = currentConfig.rules || [];
+  document.getElementById('ruleCount').textContent = rules.length;
 
   if (!rules.length) {
-    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div>Không có rule nào trong config.json</div>`;
+    container.innerHTML = `<div style="font-size:11px; color:var(--text-secondary); text-align:center; padding:15px; font-family:'JetBrains Mono', monospace;">No rules configured yet.</div>`;
     return;
   }
 
-  list.innerHTML = rules.map(rule => `
-    <div class="rule-card ${rule.enabled ? '' : 'disabled'}">
-      <div class="rule-header">
-        <div class="rule-id" title="${rule.id}">${rule.id}</div>
-        <span class="type-badge">${rule.matchType || 'prefix'}</span>
-        <span class="badge ${rule.enabled ? 'enabled' : 'disabled'}">${rule.enabled ? 'ON' : 'OFF'}</span>
-      </div>
-      <div class="rule-arrow">
-        <div class="rule-url">
-          <span class="label">FROM</span>
-          <span class="url-val" title="${rule.from}">${truncate(rule.from, 45)}</span>
-        </div>
-        <div class="rule-url to">
-          <span class="label">TO</span>
-          <span class="url-val" title="${rule.to}">${truncate(rule.to, 45)}</span>
+  container.innerHTML = rules.map((rule, idx) => `
+    <div class="rule-item">
+      <div class="rule-item-header">
+        <span class="rule-item-title">${rule.id}</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label class="switch-toggle">
+            <input type="checkbox" data-rule-toggle="${idx}" ${rule.enabled ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+          <button class="btn-icon" data-rule-delete="${idx}" title="Delete Rule">🗑</button>
         </div>
       </div>
-      ${rule.description ? `<div class="rule-desc">${rule.description}</div>` : ''}
+      <div class="rule-item-body">
+        <div>FROM: ${rule.from}</div>
+        <div class="to">TO: ${rule.to}</div>
+        ${rule.description ? `<div style="color:var(--text-secondary); margin-top:2px;">${rule.description}</div>` : ''}
+      </div>
     </div>
   `).join('');
+
+  document.querySelectorAll('[data-rule-toggle]').forEach(el => {
+    el.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.dataset.ruleToggle, 10);
+      currentConfig.rules[idx].enabled = e.target.checked;
+    });
+  });
+
+  document.querySelectorAll('[data-rule-delete]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.ruleDelete, 10);
+      currentConfig.rules.splice(idx, 1);
+      renderRulesList();
+    });
+  });
 }
 
-// ── Render History ────────────────────────────────────────
-function renderHistory(history) {
-  const list = document.getElementById('historyList');
-
-  if (!history || !history.length) {
-    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div>Chưa có redirect nào được ghi nhận.</div>`;
-    return;
-  }
-
-  list.innerHTML = history.map(h => `
-    <div class="history-item">
-      <div class="h-rule">↪ ${h.ruleId}</div>
-      <div class="h-from" title="${h.from}">🔗 ${truncate(h.from, 50)}</div>
-      <div class="h-to" title="${h.to}">✓ ${truncate(h.to, 50)}</div>
-      <div class="h-time">🕐 ${timeAgo(h.timestamp)}</div>
-    </div>
-  `).join('');
+function updateJsonAreaFromConfig() {
+  document.getElementById('jsonArea').value = JSON.stringify(currentConfig, null, 2);
 }
 
-// ── Load data from storage + background ──────────────────
+// ─── Collect UI inputs into currentConfig ───────────────────
+function collectUiToConfig() {
+  currentConfig.aemAuthorRewrite = currentConfig.aemAuthorRewrite || {};
+  currentConfig.aemAuthorRewrite.enabled = document.getElementById('aemEnabled').checked;
+  currentConfig.aemAuthorRewrite.localhostBase = "http://localhost:4502";
+  currentConfig.aemAuthorRewrite.defaultSiteName = document.getElementById('aemSiteName').value.trim();
+
+  currentConfig.htmlFallback = currentConfig.htmlFallback || {};
+  currentConfig.htmlFallback.enabled = document.getElementById('htmlFallbackEnabled').checked;
+}
+
+// ─── Load & Save Data ──────────────────────────────────────
 async function loadData() {
   try {
-    const {
-      redirectRules = [],
-      redirectHistory = [],
-      htmlFallbackConfig = null
-    } = await chrome.storage.local.get([
-      'redirectRules',
-      'redirectHistory',
-      'htmlFallbackConfig'
-    ]);
+    const response = await chrome.runtime.sendMessage({ type: "GET_STATUS" });
+    if (response && response.config) {
+      currentConfig = response.config;
+    }
 
-    renderRules(redirectRules);
-    renderHistory(redirectHistory);
-    renderHtmlFallback(htmlFallbackConfig);
-
-    document.getElementById('stat-hits').textContent = redirectHistory.length;
-
-    const activeRules = redirectRules.filter(r => r.enabled).length;
-    const fbOn = htmlFallbackConfig?.enabled ? ' + HTML Fallback ON' : '';
-    document.getElementById('statusText').textContent = `${activeRules} rules${fbOn}`;
+    renderAemSettings();
+    renderFallbackSettings();
+    renderRulesList();
 
   } catch (err) {
-    console.error('[RedirectPro Popup] Lỗi load data:', err);
-    document.getElementById('rulesList').innerHTML =
-      `<div class="empty-state"><div class="icon">⚠️</div>Lỗi khi tải dữ liệu.</div>`;
+    console.error("[RedirectPro Popup] Error loading data:", err);
   }
 }
 
-// ── Reload config button ──────────────────────────────────
-const reloadBtn = document.getElementById('reloadBtn');
-reloadBtn.addEventListener('click', async () => {
-  reloadBtn.classList.add('spinning');
-  reloadBtn.disabled = true;
-
+async function saveAllConfig() {
   try {
-    const response = await chrome.runtime.sendMessage({ type: 'RELOAD_CONFIG' });
-    if (response) {
-      if (response.rules)        renderRules(response.rules);
-      if (response.htmlFallback) renderHtmlFallback(response.htmlFallback);
-
-      const activeRules = (response.rules || []).filter(r => r.enabled).length;
-      const fbOn = response.htmlFallback?.enabled ? ' + HTML Fallback ON' : '';
-      document.getElementById('statusText').textContent =
-        `Reloaded: ${activeRules} rules${fbOn}`;
+    const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+    if (activeTab === 'json') {
+      try {
+        const parsed = JSON.parse(document.getElementById('jsonArea').value);
+        currentConfig = parsed;
+      } catch (jsonErr) {
+        showToast("JSON Syntax Error!", "#ef4444");
+        return;
+      }
+    } else {
+      collectUiToConfig();
     }
-  } catch (e) {
-    document.getElementById('statusText').textContent = 'Lỗi reload config';
+
+    const saveRes = await chrome.runtime.sendMessage({
+      type: "SAVE_CONFIG",
+      config: currentConfig
+    });
+
+    if (saveRes && saveRes.status === 'saved') {
+      showToast("Saved & Applied!", "#10b981");
+      renderAemSettings();
+      renderFallbackSettings();
+      renderRulesList();
+      updateJsonAreaFromConfig();
+    }
+  } catch (err) {
+    console.error("[RedirectPro Popup] Error saving config:", err);
+  }
+}
+
+// ─── Active Action: Open/Toggle Current Page in AEM Editor ───
+document.getElementById('openInEditorBtn').addEventListener('click', () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (!tabs || !tabs[0] || !tabs[0].url) return;
+
+    const currentUrlStr = tabs[0].url;
+    let urlObj;
+    try {
+      urlObj = new URL(currentUrlStr);
+    } catch {
+      showToast("Invalid page URL!", "#ef4444");
+      return;
+    }
+
+    const localhostBase = "http://localhost:4502";
+    const siteName = (currentConfig.aemAuthorRewrite?.defaultSiteName || "mysite").replace(/^\/+|\/+$/g, "");
+
+    let pathname = urlObj.pathname;
+    const searchAndHash = urlObj.search + urlObj.hash;
+
+    // Toggle Mode: If already in editor mode -> strip /editor.html to view Preview Mode
+    if (pathname.includes("/editor.html")) {
+      let previewPath = pathname.replace("/editor.html", "");
+      if (!previewPath.startsWith("/")) previewPath = "/" + previewPath;
+      const targetPreviewUrl = localhostBase + previewPath + searchAndHash;
+
+      chrome.tabs.update(tabs[0].id, { url: targetPreviewUrl });
+      showToast("Switched to Preview Mode", "#6366f1");
+      return;
+    }
+
+    // Convert Mode: Transform current page URL to AEM Author Editor URL (/editor.html/content/{siteName}/...)
+    let cleanPath = pathname.replace(/\/{2,}/g, "/");
+
+    if (!cleanPath.startsWith("/content/")) {
+      cleanPath = `/content/${siteName}${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
+    }
+
+    const lastSegment = cleanPath.split("/").pop() || "";
+    if (!lastSegment.includes(".") && !cleanPath.endsWith("/")) {
+      cleanPath += ".html";
+    }
+
+    const editorPath = `/editor.html${cleanPath.startsWith("/") ? "" : "/"}${cleanPath}`;
+    const targetEditorUrl = localhostBase + editorPath + searchAndHash;
+
+    console.info(`[RedirectPro] Opening active tab in AEM Editor: ${currentUrlStr} → ${targetEditorUrl}`);
+    chrome.tabs.update(tabs[0].id, { url: targetEditorUrl });
+    showToast("Opened in AEM Editor!", "#10b981");
+  });
+});
+
+// ─── Event Listeners ───────────────────────────────────────
+
+document.getElementById('saveAllBtn').addEventListener('click', saveAllConfig);
+
+// Add Live Domain
+document.getElementById('addLiveDomainBtn').addEventListener('click', () => {
+  const val = document.getElementById('newLiveDomainInput').value.trim();
+  if (val) {
+    currentConfig.aemAuthorRewrite = currentConfig.aemAuthorRewrite || { liveDomains: [] };
+    currentConfig.aemAuthorRewrite.liveDomains = currentConfig.aemAuthorRewrite.liveDomains || [];
+    currentConfig.aemAuthorRewrite.liveDomains.push(val);
+    document.getElementById('newLiveDomainInput').value = '';
+    renderAemSettings();
+  }
+});
+
+document.getElementById('newLiveDomainInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('addLiveDomainBtn').click();
+  }
+});
+
+// Add Path Prefix
+document.getElementById('addPrefixBtn').addEventListener('click', () => {
+  const val = document.getElementById('newPrefixInput').value.trim();
+  if (val) {
+    currentConfig.htmlFallback = currentConfig.htmlFallback || { pathPrefixes: [] };
+    currentConfig.htmlFallback.pathPrefixes = currentConfig.htmlFallback.pathPrefixes || [];
+    currentConfig.htmlFallback.pathPrefixes.push(val);
+    document.getElementById('newPrefixInput').value = '';
+    renderFallbackSettings();
+  }
+});
+
+document.getElementById('newPrefixInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('addPrefixBtn').click();
+  }
+});
+
+// Add Rule Form
+document.getElementById('addRuleBtn').addEventListener('click', () => {
+  const id = document.getElementById('ruleIdInput').value.trim();
+  const from = document.getElementById('ruleFromInput').value.trim();
+  const to = document.getElementById('ruleToInput').value.trim();
+  const type = document.getElementById('ruleTypeInput').value;
+  const desc = document.getElementById('ruleDescInput').value.trim();
+
+  if (!id || !from || !to) {
+    showToast("Please fill Rule ID, From, and To!", "#ef4444");
+    return;
   }
 
-  setTimeout(() => {
-    reloadBtn.classList.remove('spinning');
-    reloadBtn.disabled = false;
-  }, 600);
+  currentConfig.rules = currentConfig.rules || [];
+  currentConfig.rules.push({
+    id,
+    description: desc,
+    enabled: true,
+    matchType: type,
+    from,
+    to
+  });
+
+  document.getElementById('ruleIdInput').value = '';
+  document.getElementById('ruleFromInput').value = '';
+  document.getElementById('ruleToInput').value = '';
+  document.getElementById('ruleDescInput').value = '';
+
+  renderRulesList();
 });
 
-// ── Clear history button ──────────────────────────────────
-document.getElementById('clearHistoryBtn').addEventListener('click', async () => {
-  await chrome.storage.local.set({ redirectHistory: [] });
-  renderHistory([]);
-  document.getElementById('stat-hits').textContent = '0';
+// Format JSON
+document.getElementById('formatJsonBtn').addEventListener('click', () => {
+  try {
+    const parsed = JSON.parse(document.getElementById('jsonArea').value);
+    document.getElementById('jsonArea').value = JSON.stringify(parsed, null, 2);
+    showToast("JSON Formatted!", "#6366f1");
+  } catch (err) {
+    showToast("JSON Syntax Error!", "#ef4444");
+  }
 });
 
-// ── Init ─────────────────────────────────────────────────
+// ─── Init ──────────────────────────────────────────────────
 loadData();

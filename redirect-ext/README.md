@@ -1,119 +1,50 @@
-# URL Redirect Pro — Chrome Extension
+# URL Redirect Pro — User Guide
 
-Automatically redirects URLs based on rules defined in `config.json`.  
-**Default use case**: `https://localhost:4502/*` → `http://localhost:4502/*`
-
----
-
-## Installation
-
-1. Open Chrome → go to `chrome://extensions/`
-2. Enable **Developer mode** (top-right corner)
-3. Click **"Load unpacked"** → select the `redirect-ext` folder
-4. Extension appears in the toolbar
+Extension hỗ trợ điều hướng URL, tự động chuyển đổi đường dẫn AEM Author và sửa lỗi đường dẫn trên `http://localhost:4502`.
 
 ---
 
-## Configuration Rules (`config.json`)
+## 📥 1. Hướng Dẫn Cài Đặt (Installation)
 
-```json
-{
-  "rules": [
-    {
-      "id": "unique-rule-id",
-      "description": "Rule description",
-      "enabled": true,
-      "matchType": "prefix",
-      "from": "https://localhost:4502/",
-      "to":   "http://localhost:4502/"
-    }
-  ]
-}
-```
-
-### Match Types
-
-| Type     | Description                              | Example `from`                    |
-|----------|------------------------------------------|-----------------------------------|
-| `prefix` | URL starts with `from` string           | `"https://localhost:4502/"`       |
-| `exact`  | URL matches exactly                     | `"https://localhost:4502/login"`  |
-| `regex`  | Uses Regular Expression                 | `"^https://localhost:(\\d+)/"`    |
-
-### Example Rules
-
-```json
-{
-  "rules": [
-    {
-      "id": "aem-author-4502",
-      "description": "AEM Author: https → http",
-      "enabled": true,
-      "matchType": "prefix",
-      "from": "https://localhost:4502/",
-      "to":   "http://localhost:4502/"
-    },
-    {
-      "id": "aem-publish-4503",
-      "description": "AEM Publish: https → http",
-      "enabled": true,
-      "matchType": "prefix",
-      "from": "https://localhost:4503/",
-      "to":   "http://localhost:4503/"
-    },
-    {
-      "id": "staging-to-local",
-      "description": "Staging to local dev",
-      "enabled": false,
-      "matchType": "regex",
-      "from": "^https://staging\\.example\\.com/(.*)",
-      "to":   "http://localhost:3000/$1"
-    }
-  ]
-}
-```
-
-> After editing `config.json`, click **"Reload"** in the popup to apply changes — no need to reload the extension.
+1. Mở trình duyệt (Chrome / Edge) và truy cập trang quản lý Extension:
+   - Chrome: `chrome://extensions/`
+   - Edge: `edge://extensions/`
+2. Bật **Developer mode** (Chế độ dành cho nhà phát triển).
+3. Bấm **Load unpacked** (Tải tiện ích đã giải nén) và chọn thư mục chứa extension này (`redirect-ext`).
 
 ---
 
-## Features
+## 🚀 2. Các Tính Năng & Hướng Dẫn Sử Dụng
 
-- Redirects immediately when URL matches (before page loads)
-- Fully configurable via `config.json` — no hard-coding
-- 3 match types: `prefix`, `exact`, `regex`
-- Enable/disable individual rules with `"enabled": true/false`
-- Popup shows rule list and redirect history
-- Reload button updates rules without restart
-- Stores up to 100 recent redirects
+### ✏️ 2.1 Bật / Tắt Chế Độ AEM Editor (`Edit Mode`)
+- Click vào biểu tượng Extension trên thanh công cụ.
+- Bấm nút **`✏️ Edit Mode`** ở góc trên cùng:
+  - Nếu đang ở trang preview: `http://localhost:4502/content/mysite/us/en.html` → Trang sẽ chuyển sang chế độ Edit: `http://localhost:4502/editor.html/content/mysite/us/en.html`.
+  - Bấm lại lần nữa để quay lại chế độ Preview.
 
----
+### ⚡ 2.2 Tự Động Rewrite URL Live Site Sang Localhost
+- **Tự động bóc tách URL**: Khi bạn dán đường dẫn trang Live (ví dụ: `https://live-site.com/abc`) hoặc đường dẫn lồng nhau vào `localhost:4502`, Extension sẽ tự động điều hướng về: `http://localhost:4502/content/mysite/abc`.
+- **Kiểm tra lỗi 404**: Extension sẽ kiểm tra ngầm trang đích. Nếu đường dẫn thiếu `.html` dẫn đến 404, Extension sẽ tự động bổ sung `.html` trước khi chuyển trang.
 
-## How It Works
+### 🔍 2.3 Tự Động Khắc Phục Đường Dẫn Ngắn (Auto-Resolver)
+- Khi gõ các đường dẫn ngắn bị thiếu prefix hoặc thiếu đuôi `.html` trên `localhost:4502`, Extension sẽ tự động thử các ứng viên đường dẫn khả thi (ví dụ thêm prefix `/content/mysite` hoặc thêm `.html`) để load đúng trang.
 
-```mermaid
-flowchart TD
-    A[User navigates to URL] --> B[webNavigation.onBeforeNavigate]
-    B --> C[Load rules from config.json]
-    C --> D{Check each rule in order}
-    D -->|Match found| E[chrome.tabs.update]
-    E --> F[Redirect to new URL]
-    F --> G[Log to chrome.storage]
-    D -->|No match| H[Load original URL]
-    G --> I[View in History tab]
-    H --> I
-```
+### 📋 2.4 Cấu Hình Quy Tắc Tùy Chỉnh (Rules)
+- Trong tab **📋 Rules**: Bạn có thể thêm các quy tắc chuyển hướng tùy chỉnh:
+  - `Match Type`: Prefix, Regex, hoặc Exact.
+  - `From Pattern`: Đường dẫn nguồn (ví dụ: `https://localhost:4502/`).
+  - `To Pattern`: Đường dẫn đích (ví dụ: `http://localhost:4502/`).
 
 ---
 
-## Input / Output
+## ⚙️ 3. Cấu Hình Tùy Chỉnh (Config Options)
 
-| Input | Output |
-|-------|--------|
-| `https://localhost:4502/content/site/page.html` | `http://localhost:4502/content/site/page.html` |
-| `https://localhost:4503/libs/granite/core/content/login.html` | `http://localhost:4503/libs/granite/core/content/login.html` |
-| `https://staging.example.com/products/123` (if enabled) | `http://localhost:3000/products/123` |
-| `https://example.com/no-rule` | No redirect (loads normally) |
+Bạn có thể chỉnh sửa trực tiếp trên giao diện hoặc qua tab **⚙️ JSON**:
 
-## License
+| Trường Cấu Hình | Mô Tả | Ví Dụ |
+| :--- | :--- | :--- |
+| `defaultSiteName` | Tên site mặc định của dự án AEM | `"mysite"` |
+| `liveDomains` | Danh sách tên miền Live Site cần rewrite | `["https://live-site.com"]` |
+| `pathPrefixes` | Danh sách Prefix tự động thêm khi gõ url ngắn | `["/content/mysite"]` |
 
-MIT
+*Sau khi thay đổi cấu hình, nhớ bấm **💾 Save** để áp dụng.*
