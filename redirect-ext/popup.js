@@ -18,6 +18,17 @@ let currentConfig = {
   }
 };
 
+let editingRuleIndex = -1;
+
+function resetRuleForm() {
+  document.getElementById('ruleIdInput').value = '';
+  document.getElementById('ruleFromInput').value = '';
+  document.getElementById('ruleToInput').value = '';
+  document.getElementById('ruleDescInput').value = '';
+  document.getElementById('addRuleBtn').textContent = '➕ Add Rule';
+  editingRuleIndex = -1;
+}
+
 // ─── Tabs Navigation Control ──────────────────────────────
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -110,6 +121,7 @@ function renderRulesList() {
             <input type="checkbox" data-rule-toggle="${idx}" ${rule.enabled ? 'checked' : ''}>
             <span class="slider"></span>
           </label>
+          <button class="btn-icon" data-rule-edit="${idx}" title="Edit Rule">✏️</button>
           <button class="btn-icon" data-rule-delete="${idx}" title="Delete Rule">🗑</button>
         </div>
       </div>
@@ -128,9 +140,27 @@ function renderRulesList() {
     });
   });
 
+  document.querySelectorAll('[data-rule-edit]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.ruleEdit, 10);
+      const rule = currentConfig.rules[idx];
+      if (!rule) return;
+      document.getElementById('ruleIdInput').value = rule.id;
+      document.getElementById('ruleFromInput').value = rule.from;
+      document.getElementById('ruleToInput').value = rule.to;
+      document.getElementById('ruleTypeInput').value = rule.matchType || 'prefix';
+      document.getElementById('ruleDescInput').value = rule.description || '';
+      document.getElementById('addRuleBtn').textContent = '💾 Update Rule';
+      editingRuleIndex = idx;
+    });
+  });
+
   document.querySelectorAll('[data-rule-delete]').forEach(el => {
     el.addEventListener('click', (e) => {
       const idx = parseInt(e.target.dataset.ruleDelete, 10);
+      if (editingRuleIndex === idx) {
+        resetRuleForm();
+      }
       currentConfig.rules.splice(idx, 1);
       renderRulesList();
     });
@@ -293,7 +323,7 @@ document.getElementById('newPrefixInput').addEventListener('keydown', (e) => {
   }
 });
 
-// Add Rule Form
+// Add or Update Rule Form
 document.getElementById('addRuleBtn').addEventListener('click', () => {
   const id = document.getElementById('ruleIdInput').value.trim();
   const from = document.getElementById('ruleFromInput').value.trim();
@@ -307,20 +337,30 @@ document.getElementById('addRuleBtn').addEventListener('click', () => {
   }
 
   currentConfig.rules = currentConfig.rules || [];
-  currentConfig.rules.push({
-    id,
-    description: desc,
-    enabled: true,
-    matchType: type,
-    from,
-    to
-  });
 
-  document.getElementById('ruleIdInput').value = '';
-  document.getElementById('ruleFromInput').value = '';
-  document.getElementById('ruleToInput').value = '';
-  document.getElementById('ruleDescInput').value = '';
+  if (editingRuleIndex >= 0 && editingRuleIndex < currentConfig.rules.length) {
+    currentConfig.rules[editingRuleIndex] = {
+      ...currentConfig.rules[editingRuleIndex],
+      id,
+      description: desc,
+      matchType: type,
+      from,
+      to
+    };
+    showToast("Rule updated!", "#10b981");
+  } else {
+    currentConfig.rules.push({
+      id,
+      description: desc,
+      enabled: true,
+      matchType: type,
+      from,
+      to
+    });
+    showToast("Rule added!", "#10b981");
+  }
 
+  resetRuleForm();
   renderRulesList();
 });
 
@@ -333,6 +373,17 @@ document.getElementById('formatJsonBtn').addEventListener('click', () => {
   } catch (err) {
     showToast("JSON Syntax Error!", "#ef4444");
   }
+});
+
+// Copy JSON
+document.getElementById('copyJsonBtn').addEventListener('click', () => {
+  const jsonText = document.getElementById('jsonArea').value;
+  if (!jsonText) return;
+  navigator.clipboard.writeText(jsonText).then(() => {
+    showToast("Copied to clipboard!", "#10b981");
+  }).catch(() => {
+    showToast("Failed to copy!", "#ef4444");
+  });
 });
 
 // ─── Init ──────────────────────────────────────────────────

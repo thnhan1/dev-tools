@@ -479,9 +479,9 @@
 
   <!-- Navigation Tabs -->
   <div class="nav-tabs">
-    <div class="tab active" data-tab="aem">⚡ Author</div>
+    <div class="tab active" data-tab="aem">⚙️ Config</div>
     <div class="tab" data-tab="rules">📋 Rules</div>
-    <div class="tab" data-tab="json">⚙️ JSON</div>
+    <div class="tab" data-tab="json">📄 JSON</div>
   </div>
 
   <!-- Content Container -->
@@ -593,9 +593,12 @@
 
     <!-- Panel 3: Raw JSON Config -->
     <div class="panel" id="panel-json">
-      <div class="schema-header" style="background:transparent; border:none; padding:0 0 10px 0; color:#ffffff;">
+      <div class="schema-header" style="background:transparent; border:none; padding:0 0 10px 0; color:#ffffff; display:flex; justify-content:space-between; align-items:center;">
         <span>JSON Config Editor</span>
-        <button class="btn" id="formatJsonBtn">✨ Format JSON</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="copyJsonBtn">📋 Copy JSON</button>
+          <button class="btn" id="formatJsonBtn">✨ Format JSON</button>
+        </div>
       </div>
       <textarea class="code-editor" id="jsonArea"></textarea>
     </div>
