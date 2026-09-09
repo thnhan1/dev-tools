@@ -22,12 +22,17 @@
   },
   "permissions": [
     "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess",
     "storage",
     "tabs",
     "webNavigation",
     "webRequest"
   ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "redirect-pro@thnhan1.dev",
+      "strict_min_version": "109.0"
+    }
+  },
   "host_permissions": [
     "http://localhost/*",
     "https://localhost/*",
