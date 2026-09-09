@@ -6,11 +6,14 @@ Extension hỗ trợ điều hướng URL, tự động chuyển đổi đườn
 
 ## 📥 1. Hướng Dẫn Cài Đặt (Installation)
 
-1. Mở trình duyệt (Chrome / Edge) và truy cập trang quản lý Extension:
+1. Mở trình duyệt (Chrome / Edge / Firefox) và truy cập trang quản lý Extension:
    - Chrome: `chrome://extensions/`
    - Edge: `edge://extensions/`
-2. Bật **Developer mode** (Chế độ dành cho nhà phát triển).
-3. Bấm **Load unpacked** (Tải tiện ích đã giải nén) và chọn thư mục chứa extension này (`redirect-ext`).
+   - Firefox: `about:debugging#/runtime/this-firefox`
+2. Bật **Developer mode** (với Chrome/Edge).
+3. Cài extension:
+   - Chrome/Edge: bấm **Load unpacked** và chọn thư mục `redirect-ext`.
+   - Firefox (khuyến nghị bản 113+): bấm **Load Temporary Add-on...** và chọn file `/home/runner/work/dev-tools/dev-tools/redirect-ext/manifest.json`.
 
 ---
 
