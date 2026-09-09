@@ -8,6 +8,8 @@
 
 const CONFIG_URL = chrome.runtime.getURL("config.json");
 const activeResolutions = new Map();
+const urlExistenceCache = new Map();
+const CACHE_TTL_MS = 60000;
 
 // ─── Config Loader ──────────────────────────────────────────
 async function loadFullConfig() {
@@ -120,14 +122,19 @@ async function urlExists(targetUrl) {
     return false;
   }
 
-  // Double check target host before fetch
   if (!isTargetUrl(targetUrl)) {
     return false;
   }
 
+  const now = Date.now();
+  const cached = urlExistenceCache.get(targetUrl);
+  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
+    return cached.exists;
+  }
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
+    const timeoutId = setTimeout(() => controller.abort(), 800);
 
     let res = await fetch(targetUrl, {
       method: "HEAD",
@@ -137,11 +144,14 @@ async function urlExists(targetUrl) {
     });
     clearTimeout(timeoutId);
 
-    if (res.ok) return true;
+    if (res.ok) {
+      urlExistenceCache.set(targetUrl, { exists: true, timestamp: now });
+      return true;
+    }
 
     if (res.status === 405) {
       const getController = new AbortController();
-      const getTimeoutId = setTimeout(() => getController.abort(), 2000);
+      const getTimeoutId = setTimeout(() => getController.abort(), 800);
       res = await fetch(targetUrl, {
         method: "GET",
         credentials: "include",
@@ -149,11 +159,15 @@ async function urlExists(targetUrl) {
         signal: getController.signal
       });
       clearTimeout(getTimeoutId);
-      return res.ok;
+      const isOk = res.ok;
+      urlExistenceCache.set(targetUrl, { exists: isOk, timestamp: now });
+      return isOk;
     }
 
+    urlExistenceCache.set(targetUrl, { exists: false, timestamp: now });
     return false;
   } catch {
+    urlExistenceCache.set(targetUrl, { exists: false, timestamp: now });
     return false;
   }
 }
@@ -205,6 +219,9 @@ async function processAemRewrite(tabId, originalUrl, aemCfg) {
   const rawTarget = getRawAemTargetUrl(originalUrl, aemCfg);
   if (!rawTarget) return false;
 
+  // Prevent infinite loop / recursive .html
+  if (/(\.html){2,}/i.test(originalUrl) || /\.html\./i.test(originalUrl)) return false;
+
   // Step 1: Raw Target URL
   if (await urlExists(rawTarget)) {
     chrome.tabs.update(tabId, { url: rawTarget });
@@ -212,7 +229,13 @@ async function processAemRewrite(tabId, originalUrl, aemCfg) {
   }
 
   // Step 2: Append .html fallback
-  const lastSegment = rawTarget.split("/").pop() || "";
+  let pathname = "";
+  try {
+    pathname = new URL(rawTarget).pathname.replace(/\/+$/, "");
+  } catch {
+    pathname = rawTarget.split("?")[0].split("#")[0].replace(/\/+$/, "");
+  }
+  const lastSegment = pathname.split("/").pop() || "";
   if (!lastSegment.includes(".")) {
     const htmlTarget = rawTarget + ".html";
     if (await urlExists(htmlTarget)) {
@@ -227,6 +250,11 @@ async function processAemRewrite(tabId, originalUrl, aemCfg) {
 // ─── Proactive Auto-Resolver ────────────────────────────────
 function generateCandidateUrls(urlStr, fbCfg) {
   if (!urlStr || (!urlStr.startsWith("http://") && !urlStr.startsWith("https://"))) {
+    return [];
+  }
+
+  // Guard against existing recursive .html in input URL
+  if (/(\.html){2,}/i.test(urlStr) || /\.html\./i.test(urlStr)) {
     return [];
   }
 
@@ -251,7 +279,7 @@ function generateCandidateUrls(urlStr, fbCfg) {
     if (!path) return;
     const cleanP = path.replace(/\/{2,}/g, "/");
     const fullUrl = origin + cleanP + searchAndHash;
-    if (fullUrl !== urlStr && !candidates.includes(fullUrl)) {
+    if (fullUrl !== urlStr && !candidates.includes(fullUrl) && !/(\.html){2,}/i.test(fullUrl)) {
       candidates.push(fullUrl);
     }
   };
@@ -337,12 +365,6 @@ async function resolveAndRedirect(tabId, originalUrl) {
 }
 
 // ─── Listeners ──────────────────────────────────────────────
-chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-  if (details.frameId === 0 && details.url && (details.url.startsWith("http://") || details.url.startsWith("https://"))) {
-    resolveAndRedirect(details.tabId, details.url);
-  }
-});
-
 chrome.webRequest.onHeadersReceived.addListener(
   (details) => {
     if (details.frameId === 0 && details.statusCode >= 400 && details.url && (details.url.startsWith("http://") || details.url.startsWith("https://"))) {

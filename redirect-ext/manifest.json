@@ -18,7 +18,14 @@
     }
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "redirect-pro@thnhan1.dev",
+      "strict_min_version": "113.0"
+    }
   },
   "permissions": [
     "declarativeNetRequest",
