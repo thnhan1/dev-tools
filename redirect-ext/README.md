@@ -13,7 +13,7 @@ Extension hỗ trợ điều hướng URL, tự động chuyển đổi đườn
 2. Bật **Developer mode** (với Chrome/Edge).
 3. Cài extension:
    - Chrome/Edge: bấm **Load unpacked** và chọn thư mục `redirect-ext`.
-   - Firefox: bấm **Load Temporary Add-on...** và chọn file `/home/runner/work/dev-tools/dev-tools/redirect-ext/manifest.json`.
+   - Firefox (khuyến nghị bản 113+): bấm **Load Temporary Add-on...** và chọn file `/home/runner/work/dev-tools/dev-tools/redirect-ext/manifest.json`.
 
 ---
 
